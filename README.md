@@ -308,14 +308,6 @@ db.users.updateOne(
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## Support
 
-For support, email support@feedinneed.com or create an issue on GitHub.
-
----
-
-Made with ❤️ for reducing food waste and helping those in need.
+For support, email adhikarisubodh999@gmail.com or create an issue on GitHub.
