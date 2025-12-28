@@ -314,8 +314,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For support, email support@feedinneed.com or create an issue on GitHub.
-
----
-
-Made with ❤️ for reducing food waste and helping those in need.
+For support, email adhikarisubodh999@gmail.com or create an issue on GitHub.
