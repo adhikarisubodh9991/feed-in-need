@@ -32,8 +32,8 @@ const MyCertificatesPage = () => {
   };
 
   const getShareUrl = (certificateId) => {
-    const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${backendUrl}/share/certificate/${certificateId}`;
+    // Use current origin for same-domain deployment
+    return `${window.location.origin}/share/certificate/${certificateId}`;
   };
 
   const shareToWhatsApp = (cert) => {

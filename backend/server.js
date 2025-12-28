@@ -8,6 +8,8 @@ import 'dotenv/config';
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { generalRateLimit } from './middleware/rateLimiter.js';
@@ -83,15 +85,34 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Welcome route
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome to Feed In Need API',
-    documentation: '/api/health',
-    version: '1.0.0',
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app build directory
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  // Handle React routing - return index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes and share routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/share')) {
+      return next();
+    }
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
   });
-});
+} else {
+  // Welcome route for development
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'Welcome to Feed In Need API',
+      documentation: '/api/health',
+      version: '1.0.0',
+    });
+  });
+}
 
 // Error handling middleware
 app.use(notFound);

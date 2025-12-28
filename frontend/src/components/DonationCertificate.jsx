@@ -16,15 +16,10 @@ const DonationCertificate = ({ donation, user, certificate, onClose }) => {
   const [imageDataUrl, setImageDataUrl] = useState(null);
   const [logoLoaded, setLogoLoaded] = useState(false);
 
-  // Get backend URL for share links
-  const getBackendUrl = () => {
-    return import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  };
-
-  // Get share URL that serves OG meta tags
+  // Get share URL that serves OG meta tags (uses current origin for same-domain deployment)
   const getShareUrl = () => {
     if (certificate?.certificateId) {
-      return `${getBackendUrl()}/share/certificate/${certificate.certificateId}`;
+      return `${window.location.origin}/share/certificate/${certificate.certificateId}`;
     }
     return window.location.origin;
   };

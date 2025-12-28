@@ -1,0 +1,25 @@
+{
+  "name": "feed_in_need",
+  "version": "1.0.0",
+  "description": "A full-stack web application for food donation management that connects food donors with receivers in need. Built with React, Node.js, Express, and MongoDB.",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "install-all": "npm install --legacy-peer-deps --prefix backend && npm install --prefix frontend",
+    "build": "npm install --legacy-peer-deps --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "postinstall": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adhikarisubodh9991/feed-in-need.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/adhikarisubodh9991/feed-in-need/issues"
+  },
+  "homepage": "https://github.com/adhikarisubodh9991/feed-in-need#readme"
+}
