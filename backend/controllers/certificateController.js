@@ -98,13 +98,18 @@ export const serveCertificateOGTags = async (req, res, next) => {
     // Detect social media crawlers
     const isCrawler = /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Pinterest|Googlebot|bingbot/i.test(userAgent);
     
-    // Get frontend URL from environment
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    // Get base URL - in same-domain setup, both are the same
+    // Use BACKEND_URL as the canonical URL for sharing
+    const baseUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const frontendUrl = process.env.FRONTEND_URL || baseUrl;
     
-    // If not a crawler, redirect to React app
+    // If not a crawler, redirect to React app (same domain in production)
     if (!isCrawler) {
-      return res.redirect(`${frontendUrl}/certificate/${certificateId}`);
+      // In same-domain setup, just redirect to the certificate page path
+      const redirectUrl = process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL
+        ? `/certificate/${certificateId}`
+        : `${frontendUrl}/certificate/${certificateId}`;
+      return res.redirect(redirectUrl);
     }
     
     // Fetch certificate data for crawlers
@@ -130,9 +135,10 @@ export const serveCertificateOGTags = async (req, res, next) => {
     // Generate OG image URL (use first food photo or default)
     const ogImage = certificate.imageUrl || 
       certificate.donation?.foodPhotos?.[0] || 
-      `${frontendUrl}/og-certificate-default.png`;
+      `${baseUrl}/og-certificate-default.png`;
     
-    const shareUrl = `${backendUrl}/share/certificate/${certificateId}`;
+    const shareUrl = `${baseUrl}/share/certificate/${certificateId}`;
+    const certificatePageUrl = `${baseUrl}/certificate/${certificateId}`;
     
     // Build OG meta tags HTML
     const html = `
@@ -168,13 +174,13 @@ export const serveCertificateOGTags = async (req, res, next) => {
   <meta property="og:image:type" content="image/png">
   
   <!-- Redirect for any browser that loads this page -->
-  <meta http-equiv="refresh" content="0;url=${frontendUrl}/certificate/${certificateId}">
+  <meta http-equiv="refresh" content="0;url=${certificatePageUrl}">
 </head>
 <body>
   <h1>🍲 ${certificate.donorName} donated food!</h1>
   <p>${certificate.ogDescription}</p>
   <p>Redirecting to Feed In Need...</p>
-  <script>window.location.href = "${frontendUrl}/certificate/${certificateId}";</script>
+  <script>window.location.href = "${certificatePageUrl}";</script>
 </body>
 </html>
     `.trim();
@@ -276,8 +282,9 @@ export const getShareUrls = async (req, res, next) => {
       });
     }
 
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const shareUrl = `${backendUrl}/share/certificate/${certificateId}`;
+    // Use BACKEND_URL for share links (same as frontend in same-domain setup)
+    const baseUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const shareUrl = `${baseUrl}/share/certificate/${certificateId}`;
     
     const shareText = `🍲 ${certificate.donorName} donated "${certificate.foodTitle}" through Feed In Need! Join us in fighting hunger. 💚`;
     const whatsappText = `🎉 I just donated "${certificate.foodTitle}" through Feed In Need!\n\n🍲 Food: ${certificate.foodTitle}\n📦 Quantity: ${certificate.quantity}\n\nJoin me in fighting hunger and food waste! 💚\n\n${shareUrl}\n\n#FeedInNeed #FoodDonation #ZeroHunger`;

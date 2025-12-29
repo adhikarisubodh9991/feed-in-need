@@ -1,27 +1,137 @@
 /**
  * Email Configuration using Nodemailer
- * Sends notifications to admin and users
+ * Supports multiple providers: Gmail, Resend, Brevo, or custom SMTP
+ * 
+ * For production deployment, use one of these options:
+ * 1. Resend (recommended): Set EMAIL_PROVIDER=resend and RESEND_API_KEY
+ * 2. Brevo/Sendinblue: Set EMAIL_PROVIDER=brevo with their SMTP credentials
+ * 3. Gmail with App Password: Set EMAIL_PROVIDER=gmail (may have issues on some platforms)
  */
 
 import nodemailer from 'nodemailer';
 
-// Create reusable transporter object using SMTP
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Determine email provider and create appropriate transporter
+const createTransporter = () => {
+  const provider = process.env.EMAIL_PROVIDER || 'gmail';
+  
+  console.log(`📧 Email provider: ${provider}`);
+  
+  switch (provider.toLowerCase()) {
+    case 'resend':
+      // Resend - Works great in production (resend.com)
+      return nodemailer.createTransport({
+        host: 'smtp.resend.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: 'resend',
+          pass: process.env.RESEND_API_KEY,
+        },
+      });
+      
+    case 'brevo':
+    case 'sendinblue':
+      // Brevo (formerly Sendinblue) - Free tier available
+      return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+      
+    case 'mailgun':
+      // Mailgun SMTP
+      return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.mailgun.org',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+      
+    case 'gmail':
+    default:
+      // Gmail SMTP - Works locally, may have issues in production
+      // Requires App Password: https://myaccount.google.com/apppasswords
+      return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        // Additional settings for better deliverability
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+  }
+};
+
+// Create transporter instance
+let transporter = createTransporter();
+
+// Verify transporter connection on startup (only in production)
+if (process.env.NODE_ENV === 'production') {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ Email transporter verification failed:', error.message);
+      console.log('📧 Emails will be logged to console instead');
+    } else {
+      console.log('✅ Email server is ready to send messages');
+    }
+  });
+}
+
+// Get the "from" email address based on provider
+const getFromEmail = () => {
+  const provider = process.env.EMAIL_PROVIDER || 'gmail';
+  
+  if (provider === 'resend') {
+    // Resend requires verified domain or onboarding@resend.dev for testing
+    return process.env.EMAIL_FROM || 'Feed In Need <onboarding@resend.dev>';
+  }
+  
+  return `"Feed In Need" <${process.env.EMAIL_USER}>`;
+};
+
+// Helper function to send email with fallback logging
+const sendEmail = async (mailOptions) => {
+  try {
+    // Add from address if not specified
+    if (!mailOptions.from) {
+      mailOptions.from = getFromEmail();
+    }
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent: ${mailOptions.subject} to ${mailOptions.to}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Email send error:', error.message);
+    
+    // Log email content to console as fallback (useful for debugging)
+    if (process.env.NODE_ENV === 'production') {
+      console.log('📧 [EMAIL FALLBACK LOG]');
+      console.log(`To: ${mailOptions.to}`);
+      console.log(`Subject: ${mailOptions.subject}`);
+      console.log('---');
+    }
+    
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Send email verification code
  */
 export const sendEmailVerificationCode = async (email, name, code) => {
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: '🔐 Verify Your Email - Feed In Need',
     html: `
@@ -40,14 +150,8 @@ export const sendEmailVerificationCode = async (email, name, code) => {
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Verification code sent to ${email}`);
-    return true;
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-    return false;
-  }
+  const result = await sendEmail(mailOptions);
+  return result.success;
 };
 
 /**
@@ -55,7 +159,6 @@ export const sendEmailVerificationCode = async (email, name, code) => {
  */
 export const sendPasswordResetCode = async (email, name, code) => {
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: '🔑 Password Reset Code - Feed In Need',
     html: `
@@ -74,22 +177,17 @@ export const sendPasswordResetCode = async (email, name, code) => {
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Password reset code sent to ${email}`);
-    return true;
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-    return false;
-  }
+  const result = await sendEmail(mailOptions);
+  return result.success;
 };
 
 /**
  * Send email to admin about new donation
  */
 export const sendDonationNotification = async (donation, donor) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+  
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL,
     subject: '🍲 New Food Donation Received!',
     html: `
@@ -115,27 +213,23 @@ export const sendDonationNotification = async (donation, donor) => {
               : ''}
           
           <p style="margin-top: 20px; color: #666;">
-            <a href="${process.env.FRONTEND_URL}/admin/donations" style="background: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Dashboard</a>
+            <a href="${frontendUrl}/admin/donations" style="background: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Dashboard</a>
           </p>
         </div>
       </div>
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Donation notification sent to admin');
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-  }
+  await sendEmail(mailOptions);
 };
 
 /**
  * Send email to admin about new receiver registration
  */
 export const sendReceiverVerificationRequest = async (receiver) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+  
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL,
     subject: '👤 New Receiver Verification Request',
     html: `
@@ -152,27 +246,23 @@ export const sendReceiverVerificationRequest = async (receiver) => {
           ${receiver.organizationDoc ? `<p><strong>Organization Doc:</strong> <a href="${receiver.organizationDoc}">View Document</a></p>` : ''}
           
           <p style="margin-top: 20px;">
-            <a href="${process.env.FRONTEND_URL}/admin/receivers" style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Now</a>
+            <a href="${frontendUrl}/admin/receivers" style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Now</a>
           </p>
         </div>
       </div>
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Receiver verification request sent to admin');
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-  }
+  await sendEmail(mailOptions);
 };
 
 /**
  * Send approval/rejection email to receiver
  */
 export const sendVerificationResult = async (receiver, approved) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+  
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: receiver.email,
     subject: approved ? '✅ Account Verified - Feed In Need' : '❌ Account Verification Update',
     html: `
@@ -184,7 +274,7 @@ export const sendVerificationResult = async (receiver, approved) => {
           <p>Dear ${receiver.name},</p>
           ${approved 
             ? `<p>Your account has been verified successfully. You can now request food donations and view donor contact details.</p>
-               <p><a href="${process.env.FRONTEND_URL}/login" style="background: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login Now</a></p>`
+               <p><a href="${frontendUrl}/login" style="background: #22c55e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login Now</a></p>`
             : `<p>Unfortunately, we couldn't verify your account at this time. This could be due to:</p>
                <ul>
                  <li>Unclear ID proof/documents</li>
@@ -197,20 +287,16 @@ export const sendVerificationResult = async (receiver, approved) => {
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Verification result sent to ${receiver.email}`);
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-  }
+  await sendEmail(mailOptions);
 };
 
 /**
  * Send food request notification to admin
  */
 export const sendFoodRequestNotification = async (request, receiver, donation) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+  
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL,
     subject: '📦 New Food Request',
     html: `
@@ -228,19 +314,14 @@ export const sendFoodRequestNotification = async (request, receiver, donation) =
           <p><strong>Message:</strong> ${request.message || 'No message'}</p>
           
           <p style="margin-top: 20px;">
-            <a href="${process.env.FRONTEND_URL}/admin/requests" style="background: #f59e0b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review Request</a>
+            <a href="${frontendUrl}/admin/requests" style="background: #f59e0b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review Request</a>
           </p>
         </div>
       </div>
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Food request notification sent to admin');
-  } catch (error) {
-    console.error('❌ Email send error:', error);
-  }
+  await sendEmail(mailOptions);
 };
 
 /**
@@ -248,7 +329,6 @@ export const sendFoodRequestNotification = async (request, receiver, donation) =
  */
 export const sendErrorNotification = async (title, errorDetails) => {
   const mailOptions = {
-    from: `"Feed In Need" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL,
     subject: `🚨 Error: ${title}`,
     html: `
@@ -270,12 +350,7 @@ export const sendErrorNotification = async (title, errorDetails) => {
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Error notification sent to admin');
-  } catch (error) {
-    console.error('❌ Error notification email failed:', error);
-  }
+  await sendEmail(mailOptions);
 };
 
 /**
@@ -283,8 +358,9 @@ export const sendErrorNotification = async (title, errorDetails) => {
  * Used for requesting corrections to profile information
  */
 export const sendAdminMessageToUser = async (user, subject, message, actionRequired = null) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.BACKEND_URL || '';
+  
   const mailOptions = {
-    from: `"Feed In Need Admin" <${process.env.EMAIL_USER}>`,
     to: user.email,
     subject: `📬 ${subject} - Feed In Need`,
     html: `
@@ -305,7 +381,7 @@ export const sendAdminMessageToUser = async (user, subject, message, actionRequi
           ` : ''}
           
           <p style="margin-top: 20px;">
-            <a href="${process.env.FRONTEND_URL}/profile" style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Your Profile</a>
+            <a href="${frontendUrl}/profile" style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Your Profile</a>
           </p>
           
           <p style="color: #666; font-size: 14px; margin-top: 20px;">
@@ -320,14 +396,8 @@ export const sendAdminMessageToUser = async (user, subject, message, actionRequi
     `,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Admin message sent to ${user.email}`);
-    return true;
-  } catch (error) {
-    console.error('❌ Admin message email failed:', error);
-    return false;
-  }
+  const result = await sendEmail(mailOptions);
+  return result.success;
 };
 
 export default transporter;
