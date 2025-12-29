@@ -9,21 +9,38 @@
  */
 
 
+
 import nodemailer from 'nodemailer';
 
-// Gmail-only Nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+let transporter;
+const provider = process.env.EMAIL_PROVIDER;
+
+if (provider === 'resend') {
+  // Resend API (recommended)
+  transporter = nodemailer.createTransport({
+    host: 'smtp.resend.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: 'resend',
+      pass: process.env.RESEND_API_KEY,
+    },
+  });
+} else {
+  // Fallback to SMTP (Brevo, Gmail, etc.)
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+}
 
 // Verify transporter connection on startup (only in production)
 if (process.env.NODE_ENV === 'production') {
@@ -39,6 +56,10 @@ if (process.env.NODE_ENV === 'production') {
 
 // Get the "from" email address
 const getFromEmail = () => {
+  if (provider === 'resend') {
+    // Use EMAIL_FROM if set, otherwise fallback
+    return process.env.EMAIL_FROM || 'Feed In Need <noreply@yourdomain.com>';
+  }
   return `"Feed In Need" <${process.env.EMAIL_USER}>`;
 };
 
