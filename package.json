@@ -1,3 +1,4 @@
+  "postinstall": "npm install --prefix frontend"
 {
   "name": "feed_in_need",
   "version": "1.0.0",
