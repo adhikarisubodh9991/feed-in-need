@@ -8,74 +8,22 @@
  * 3. Gmail with App Password: Set EMAIL_PROVIDER=gmail (may have issues on some platforms)
  */
 
+
 import nodemailer from 'nodemailer';
 
-// Determine email provider and create appropriate transporter
-const createTransporter = () => {
-  const provider = process.env.EMAIL_PROVIDER || 'gmail';
-  
-  console.log(`📧 Email provider: ${provider}`);
-  
-  switch (provider.toLowerCase()) {
-    case 'resend':
-      // Resend - Works great in production (resend.com)
-      return nodemailer.createTransport({
-        host: 'smtp.resend.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: 'resend',
-          pass: process.env.RESEND_API_KEY,
-        },
-      });
-      
-    case 'brevo':
-    case 'sendinblue':
-      // Brevo (formerly Sendinblue) - Free tier available
-      return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-      
-    case 'mailgun':
-      // Mailgun SMTP
-      return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.mailgun.org',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-      
-    case 'gmail':
-    default:
-      // Gmail SMTP - Works locally, may have issues in production
-      // Requires App Password: https://myaccount.google.com/apppasswords
-      return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        // Additional settings for better deliverability
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-  }
-};
-
-// Create transporter instance
-let transporter = createTransporter();
+// Gmail-only Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.EMAIL_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
 // Verify transporter connection on startup (only in production)
 if (process.env.NODE_ENV === 'production') {
@@ -89,15 +37,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Get the "from" email address based on provider
+// Get the "from" email address
 const getFromEmail = () => {
-  const provider = process.env.EMAIL_PROVIDER || 'gmail';
-  
-  if (provider === 'resend') {
-    // Resend requires verified domain or onboarding@resend.dev for testing
-    return process.env.EMAIL_FROM || 'Feed In Need <onboarding@resend.dev>';
-  }
-  
   return `"Feed In Need" <${process.env.EMAIL_USER}>`;
 };
 
