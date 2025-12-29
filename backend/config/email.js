@@ -1,46 +1,35 @@
 /**
- * Email Configuration using Nodemailer
- * Supports multiple providers: Gmail, Resend, Brevo, or custom SMTP
- * 
- * For production deployment, use one of these options:
- * 1. Resend (recommended): Set EMAIL_PROVIDER=resend and RESEND_API_KEY
- * 2. Brevo/Sendinblue: Set EMAIL_PROVIDER=brevo with their SMTP credentials
- * 3. Gmail with App Password: Set EMAIL_PROVIDER=gmail (may have issues on some platforms)
+ * Email Configuration using Nodemailer (Gmail Only)
+ *
+ * For Gmail SMTP:
+ * 1. Set EMAIL_USER to your Gmail address
+ * 2. Set EMAIL_PASS to your Gmail App Password (not your regular password)
+ * 3. Optionally set EMAIL_FROM for the "from" address
  */
 
 
 
 import nodemailer from 'nodemailer';
 
-let transporter;
-const provider = process.env.EMAIL_PROVIDER;
 
-if (provider === 'resend') {
-  // Resend API (recommended)
-  transporter = nodemailer.createTransport({
-    host: 'smtp.resend.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: 'resend',
-      pass: process.env.RESEND_API_KEY,
-    },
-  });
-} else {
-  // Fallback to SMTP (Brevo, Gmail, etc.)
-  transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+// Fallback to hardcoded credentials if env vars are missing (for emergency/test only)
+const gmailUser = process.env.EMAIL_USER || 'adhikarisubodh999@gmail.com';
+const gmailPass = process.env.EMAIL_PASS || 'diqg cylh fxyz phno';
+if (!gmailUser || !gmailPass) {
+  console.error('❌ Gmail credentials missing! Set EMAIL_USER and EMAIL_PASS in .env');
 }
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: gmailUser,
+    pass: gmailPass,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
 // Verify transporter connection on startup (only in production)
 if (process.env.NODE_ENV === 'production') {
@@ -49,18 +38,14 @@ if (process.env.NODE_ENV === 'production') {
       console.error('❌ Email transporter verification failed:', error.message);
       console.log('📧 Emails will be logged to console instead');
     } else {
-      console.log('✅ Email server is ready to send messages');
+      console.log('✅ Gmail SMTP server is ready to send messages');
     }
   });
 }
 
 // Get the "from" email address
 const getFromEmail = () => {
-  if (provider === 'resend') {
-    // Use EMAIL_FROM if set, otherwise fallback
-    return process.env.EMAIL_FROM || 'Feed In Need <noreply@yourdomain.com>';
-  }
-  return `"Feed In Need" <${process.env.EMAIL_USER}>`;
+  return process.env.EMAIL_FROM || `Feed In Need <${process.env.EMAIL_USER}>`;
 };
 
 // Helper function to send email with fallback logging
