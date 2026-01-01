@@ -5,7 +5,38 @@
 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiHeart, FiUsers, FiCheck, FiArrowRight, FiGift, FiShield, FiTrendingUp } from 'react-icons/fi';
+import { FiHeart, FiUsers, FiCheck, FiArrowRight, FiGift, FiShield, FiTrendingUp, FiExternalLink } from 'react-icons/fi';
+
+// Stories data about hunger issues in Nepal
+const hungerStories = [
+  {
+    id: 1,
+    title: "Stunted Future",
+    source: "The Kathmandu Post",
+    summary: "For an agriculture-based economy, it is a shame that our children are hungry and undernourished. While Nepal has reduced stunting from 57% in 2001 to 25% in 2022, Karnali Province still has 36% stunted children. Malnutrition remains a critical challenge.",
+    image: "https://assets-cdn.kathmandupost.com/uploads/source/news/2025/opinion/thumb5-1739931881.jpg",
+    link: "https://kathmandupost.com/editorial/2025/02/19/stunted-future",
+    date: "February 19, 2025"
+  },
+  {
+    id: 2,
+    title: "The Karnali's Hunger Emergency",
+    source: "Nepali Times",
+    summary: "Karnali Province faces a severe hunger crisis with thousands of families struggling for food security. Remote villages have limited access to supplies, and climate disasters continue to worsen the situation for vulnerable communities.",
+    image: "https://assets-cdn.kathmandupost.com/uploads/source/news/2024/third-party/karnali-1708486697.jpg",
+    link: "https://nepalitimes.com/here-now/the-karnali-s-hunger-emergency",
+    date: "2024"
+  },
+  {
+    id: 3,
+    title: "Not Enough to Eat",
+    source: "Asia News Network",
+    summary: "Remote districts of Sudurpaschim Province like Bajhang face acute food crisis. In Saipal, around 2,800 people rely solely on government food subsidies. Villagers trek three days just to buy food items from district headquarters.",
+    image: "https://asianews.network/wp-content/uploads/bfi_thumb/thumb-8-7l4fkv9w9rypufad2idr22sy1omi8r23eorw7s4bo74.jpg",
+    link: "https://asianews.network/not-enough-to-eat-the-kathmandu-post/",
+    date: "September 4, 2025"
+  }
+];
 
 const HomePage = () => {
   const { isAuthenticated, isDonor, isReceiver } = useAuth();
@@ -73,6 +104,63 @@ const HomePage = () => {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Hunger Stories Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Why This <span className="text-primary-600">Matters</span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Real stories highlighting the hunger crisis in Nepal. Together, we can make a difference.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {hungerStories.map((story) => (
+              <article
+                key={story.id}
+                className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 animate-fade-in-up"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={story.image}
+                    alt={story.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=300&fit=crop';
+                    }}
+                  />
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-primary-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      {story.source}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-gray-500 mb-2">{story.date}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                    {story.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+                    {story.summary}
+                  </p>
+                  <a
+                    href={story.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary-600 font-semibold hover:text-primary-700 transition-colors"
+                  >
+                    Read Full Story
+                    <FiExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
