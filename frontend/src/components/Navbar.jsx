@@ -109,11 +109,10 @@ const Navbar = () => {
                           View Profile
                         </Link>
                         
-                        <div className="border-t border-gray-100 my-2"></div>
-                        
-                        {/* Donor Options (only for donors, not admins) */}
+                        {/* Donor Options (only for donors) */}
                         {user.role === 'donor' && (
                           <>
+                            <div className="border-t border-gray-100 my-2"></div>
                             <Link
                               to="/my-donations"
                               onClick={() => setProfileDropdownOpen(false)}
@@ -136,6 +135,7 @@ const Navbar = () => {
                         {/* Receiver Options */}
                         {user.role === 'receiver' && (
                           <>
+                            <div className="border-t border-gray-100 my-2"></div>
                             <Link
                               to="/my-requests"
                               onClick={() => setProfileDropdownOpen(false)}
