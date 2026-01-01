@@ -297,7 +297,7 @@ const Navbar = () => {
             </>
           ) : (
             <div className="pt-2 space-y-2 border-t border-gray-100 mt-2">
-              <Link
+            <Link
                 to="/login"
                 onClick={() => setIsOpen(false)}
                 className="block px-4 py-3 text-center bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
