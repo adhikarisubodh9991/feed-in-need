@@ -111,8 +111,8 @@ const Navbar = () => {
                         
                         <div className="border-t border-gray-100 my-2"></div>
                         
-                        {/* Donor Options */}
-                        {(user.role === 'donor' || user.role === 'admin' || user.role === 'superadmin') && (
+                        {/* Donor Options (only for donors, not admins) */}
+                        {user.role === 'donor' && (
                           <>
                             <Link
                               to="/my-donations"
@@ -243,7 +243,7 @@ const Navbar = () => {
                 </Link>
                 
                 {/* Donor Options */}
-                {(user.role === 'donor' || user.role === 'admin' || user.role === 'superadmin') && (
+                {user.role === 'donor' && (
                   <>
                     <Link
                       to="/my-donations"
