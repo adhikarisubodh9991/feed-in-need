@@ -511,6 +511,114 @@ export const completeRequestViaQR = async (req, res, next) => {
       data: {
         requestId: request._id,
         canRate: true,
+        donation: {
+          _id: fullDonation._id,
+          foodTitle: fullDonation.foodTitle,
+          donor: {
+            name: donor.name,
+          }
+        },
+        certificate: certificate ? {
+          certificateId: certificate.certificateId,
+          shareUrl: `/share/certificate/${certificate.certificateId}`,
+        } : null,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Complete request using only confirmation code (finds the matching approved request for this receiver)
+ * @route   PUT /api/requests/complete-by-code
+ * @access  Private (Receiver)
+ */
+export const completeRequestByCode = async (req, res, next) => {
+  try {
+    const { confirmationCode } = req.body;
+
+    if (!confirmationCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Confirmation code is required',
+      });
+    }
+
+    // Find an approved request for this receiver with matching confirmation code
+    const request = await Request.findOne({
+      receiver: req.user._id,
+      status: 'approved',
+      confirmationCode: confirmationCode.toUpperCase(),
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid confirmation code. Please check the code and ensure you have an approved request.',
+      });
+    }
+
+    // Update request
+    request.status = 'completed';
+    request.completedAt = Date.now();
+    await request.save();
+
+    // Update donation status to completed
+    const donation = await Donation.findByIdAndUpdate(request.donation, {
+      status: 'completed',
+      claimedBy: req.user._id,
+      claimedAt: Date.now(),
+    }, { new: true });
+
+    // Get full donation and user details for certificate
+    const fullDonation = await Donation.findById(request.donation);
+    const donor = await User.findById(fullDonation.donor);
+    const receiver = await User.findById(request.receiver);
+
+    // Increment successful transaction counts
+    await User.findByIdAndUpdate(donation.donor, {
+      $inc: { successfulDonations: 1 }
+    });
+    await User.findByIdAndUpdate(request.receiver, {
+      $inc: { successfulReceives: 1 }
+    });
+
+    // Generate donation certificate
+    let certificate = null;
+    try {
+      certificate = await Certificate.generateCertificate(request, fullDonation, donor, receiver);
+      
+      // Create notification for donor about certificate
+      await Notification.create({
+        user: donor._id,
+        type: 'certificate',
+        title: 'Donation Certificate Ready! 🎉',
+        message: `Your donation of "${fullDonation.foodTitle}" has been received by ${receiver.name}. Your certificate is ready to share!`,
+        data: {
+          certificateId: certificate.certificateId,
+          donationId: fullDonation._id,
+          requestId: request._id,
+        },
+      });
+    } catch (certError) {
+      console.error('Failed to generate certificate:', certError);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Food pickup confirmed! Thank you for helping reduce food waste.',
+      data: {
+        _id: request._id,
+        requestId: request._id,
+        canRate: true,
+        donation: {
+          _id: fullDonation._id,
+          foodTitle: fullDonation.foodTitle,
+          donor: {
+            name: donor.name,
+          }
+        },
         certificate: certificate ? {
           certificateId: certificate.certificateId,
           shareUrl: `/share/certificate/${certificate.certificateId}`,

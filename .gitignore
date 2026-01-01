@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.production
 
 # Build outputs
 dist/
@@ -33,3 +34,6 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Vercel
+.vercel

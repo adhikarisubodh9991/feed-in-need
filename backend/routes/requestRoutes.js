@@ -11,6 +11,7 @@ import {
   cancelRequest,
   completeRequest,
   completeRequestViaQR,
+  completeRequestByCode,
   getPickupQRData,
 } from '../controllers/requestController.js';
 import { protect, authorize, verifiedReceiver } from '../middleware/auth.js';
@@ -29,6 +30,9 @@ router.get('/my', authorize('receiver', 'admin'), getMyRequests);
 
 // Complete request via QR code
 router.put('/complete-qr', authorize('receiver', 'admin'), completeRequestViaQR);
+
+// Complete request via confirmation code only (finds the matching request automatically)
+router.put('/complete-by-code', authorize('receiver', 'admin'), completeRequestByCode);
 
 // Get QR code data for pickup (for donors)
 router.get('/:id/qr-data', authorize('donor', 'admin'), getPickupQRData);

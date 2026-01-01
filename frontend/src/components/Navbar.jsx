@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import InboxBell from './InboxBell';
-import { FiMenu, FiX, FiLogOut, FiUser, FiHome, FiHeart, FiGift, FiGrid } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiHome, FiHeart, FiGift, FiGrid, FiPackage, FiAward, FiCheckCircle, FiChevronDown, FiClipboard, FiCamera } from 'react-icons/fi';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -65,26 +78,99 @@ const Navbar = () => {
                 <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
                   <NotificationBell />
                   <InboxBell />
-                  <Link
-                    to="/profile"
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all duration-200 hover:bg-gray-50"
-                  >
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover border-2 border-gray-200" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                        <FiUser className="w-4 h-4 text-gray-600" />
+                  
+                  {/* Profile Dropdown */}
+                  <div className="relative" ref={profileDropdownRef}>
+                    <button
+                      onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all duration-200 hover:bg-gray-50"
+                    >
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover border-2 border-gray-200" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                          <FiUser className="w-4 h-4 text-gray-600" />
+                        </div>
+                      )}
+                      <span className="text-gray-700">{user?.name?.split(' ')[0] || 'Profile'}</span>
+                      <FiChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {profileDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                        {/* Profile Link */}
+                        <Link
+                          to="/profile"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <FiUser className="w-4 h-4" />
+                          View Profile
+                        </Link>
+                        
+                        <div className="border-t border-gray-100 my-2"></div>
+                        
+                        {/* Donor Options */}
+                        {(user.role === 'donor' || user.role === 'admin' || user.role === 'superadmin') && (
+                          <>
+                            <Link
+                              to="/my-donations"
+                              onClick={() => setProfileDropdownOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <FiPackage className="w-4 h-4" />
+                              My Donations
+                            </Link>
+                            <Link
+                              to="/my-certificates"
+                              onClick={() => setProfileDropdownOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <FiAward className="w-4 h-4" />
+                              My Certificates
+                            </Link>
+                          </>
+                        )}
+                        
+                        {/* Receiver Options */}
+                        {user.role === 'receiver' && (
+                          <>
+                            <Link
+                              to="/my-requests"
+                              onClick={() => setProfileDropdownOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <FiClipboard className="w-4 h-4" />
+                              My Requests
+                            </Link>
+                            <Link
+                              to="/confirm-pickup"
+                              onClick={() => setProfileDropdownOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <FiCamera className="w-4 h-4" />
+                              Confirm Pickup
+                            </Link>
+                          </>
+                        )}
+                        
+                        <div className="border-t border-gray-100 my-2"></div>
+                        
+                        {/* Logout */}
+                        <button
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            handleLogout();
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <FiLogOut className="w-4 h-4" />
+                          Logout
+                        </button>
                       </div>
                     )}
-                    <span className="text-gray-700">Profile</span>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    <FiLogOut className="w-4 h-4" />
-                    Logout
-                  </button>
+                  </div>
                 </div>
               </>
             ) : (
@@ -137,20 +223,69 @@ const Navbar = () => {
               {(user.role === 'admin' || user.role === 'superadmin') && (
                 <NavLink to="/admin" icon={FiGrid} mobile>Admin Dashboard</NavLink>
               )}
-              <Link
-                to="/profile"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
-              >
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover border-2 border-gray-200" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <FiUser className="w-4 h-4 text-gray-600" />
-                  </div>
+              
+              {/* Profile Section */}
+              <div className="border-t border-gray-100 mt-2 pt-2">
+                <p className="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
+                <Link
+                  to="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
+                >
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover border-2 border-gray-200" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <FiUser className="w-4 h-4 text-gray-600" />
+                    </div>
+                  )}
+                  View Profile
+                </Link>
+                
+                {/* Donor Options */}
+                {(user.role === 'donor' || user.role === 'admin' || user.role === 'superadmin') && (
+                  <>
+                    <Link
+                      to="/my-donations"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      <FiPackage className="w-4 h-4" />
+                      My Donations
+                    </Link>
+                    <Link
+                      to="/my-certificates"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      <FiAward className="w-4 h-4" />
+                      My Certificates
+                    </Link>
+                  </>
                 )}
-                Profile
-              </Link>
+                
+                {/* Receiver Options */}
+                {user.role === 'receiver' && (
+                  <>
+                    <Link
+                      to="/my-requests"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      <FiClipboard className="w-4 h-4" />
+                      My Requests
+                    </Link>
+                    <Link
+                      to="/confirm-pickup"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      <FiCamera className="w-4 h-4" />
+                      Confirm Pickup
+                    </Link>
+                  </>
+                )}
+              </div>
               
               <button
                 onClick={handleLogout}

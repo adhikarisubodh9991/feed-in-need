@@ -25,8 +25,10 @@ const MyDonationsPage = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState(null);
+  const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [approvedRequest, setApprovedRequest] = useState(null);
   const [loadingCode, setLoadingCode] = useState(false);
+  const [loadingCertificate, setLoadingCertificate] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingData, setRatingData] = useState(null);
   const [receiverRatings, setReceiverRatings] = useState(null);
@@ -87,6 +89,23 @@ const MyDonationsPage = () => {
       setShowCodeModal(false);
     } finally {
       setLoadingCode(false);
+    }
+  };
+
+  const viewCertificate = async (donation) => {
+    setSelectedDonation(donation);
+    setShowCertificateModal(true);
+    setLoadingCertificate(true);
+    setSelectedCertificate(null);
+    
+    try {
+      const response = await api.get(`/certificates/donation/${donation._id}`);
+      setSelectedCertificate(response.data.data);
+    } catch (error) {
+      toast.error('Failed to load certificate');
+      setShowCertificateModal(false);
+    } finally {
+      setLoadingCertificate(false);
     }
   };
 
@@ -297,12 +316,9 @@ const MyDonationsPage = () => {
                         {/* Certificate button - only for COMPLETED donations (receiver has received food) */}
                         {donation.status === 'completed' && (
                           <button
-                            onClick={() => {
-                              setSelectedDonation(donation);
-                              setShowCertificateModal(true);
-                            }}
+                            onClick={() => viewCertificate(donation)}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
-                            title="Download Certificate"
+                            title="View Certificate"
                           >
                             <FiAward />
                           </button>
@@ -465,8 +481,30 @@ const MyDonationsPage = () => {
       )}
       {/* Confirmation Code Modal */}
       {showCodeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 animate-fadeIn">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCodeModal(false);
+              setApprovedRequest(null);
+            }
+          }}
+        >
+          <div className="bg-white rounded-xl max-w-md w-full p-6 animate-fadeIn my-8 relative max-h-[90vh] overflow-y-auto">
+            {/* Close Button - Top Right */}
+            <button
+              onClick={() => {
+                setShowCodeModal(false);
+                setApprovedRequest(null);
+              }}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
             {loadingCode ? (
               <div className="flex items-center justify-center py-8">
                 <Loader size="large" />
@@ -484,21 +522,21 @@ const MyDonationsPage = () => {
                 </div>
 
                 {/* Big Code Display */}
-                <div className="bg-gray-100 rounded-xl p-6 text-center mb-6">
-                  <p className="text-4xl font-mono font-bold tracking-widest text-blue-600">
+                <div className="bg-gray-100 rounded-xl p-4 text-center mb-4">
+                  <p className="text-3xl font-mono font-bold tracking-widest text-blue-600">
                     {approvedRequest.confirmationCode}
                   </p>
                 </div>
 
                 {/* Receiver Info */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                  <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2 text-sm">
                     Receiver Details
                     {approvedRequest.receiver?.isTrusted && <TrustedBadge size="small" />}
                   </h4>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-1 text-sm">
                     <p className="flex items-center gap-2 text-green-700">
-                      <FiUser />
+                      <FiUser className="flex-shrink-0" />
                       {approvedRequest.receiver?.name}
                       <span className="text-xs bg-green-200 px-2 py-0.5 rounded">
                         {approvedRequest.receiver?.receiverType}
@@ -506,7 +544,7 @@ const MyDonationsPage = () => {
                     </p>
                     {approvedRequest.receiver?.phone && (
                       <p className="flex items-center gap-2 text-green-700">
-                        <FiPhone />
+                        <FiPhone className="flex-shrink-0" />
                         <a href={`tel:${approvedRequest.receiver.phone}`} className="underline">
                           {approvedRequest.receiver.phone}
                         </a>
@@ -514,7 +552,7 @@ const MyDonationsPage = () => {
                     )}
                   </div>
                   {approvedRequest.message && (
-                    <div className="mt-3 pt-3 border-t border-green-200">
+                    <div className="mt-2 pt-2 border-t border-green-200">
                       <p className="text-sm text-green-700">
                         <strong>Their message:</strong> "{approvedRequest.message}"
                       </p>
@@ -524,18 +562,18 @@ const MyDonationsPage = () => {
 
                 {/* QR Code for receiver to scan */}
                 {approvedRequest.qrCodeData && (
-                  <div className="text-center mb-6">
-                    <p className="text-sm text-gray-600 mb-3">
+                  <div className="text-center mb-4">
+                    <p className="text-sm text-gray-600 mb-2">
                       Or let receiver scan this QR code:
                     </p>
                     <div className="flex justify-center">
-                      <QRCodeDisplay data={approvedRequest.qrCodeData} size={180} />
+                      <QRCodeDisplay data={approvedRequest.qrCodeData} size={150} />
                     </div>
                   </div>
                 )}
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                  <p className="text-yellow-800 text-sm">
+                  <p className="text-yellow-800 text-xs">
                     ⚠️ Only share this code/QR when the receiver has physically collected the food. 
                     They will enter/scan this to confirm receipt.
                   </p>
@@ -546,7 +584,7 @@ const MyDonationsPage = () => {
                     setShowCodeModal(false);
                     setApprovedRequest(null);
                   }}
-                  className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="w-full px-4 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium"
                 >
                   Close
                 </button>
@@ -567,14 +605,42 @@ const MyDonationsPage = () => {
       )}
       {/* Donation Certificate Modal */}
       {showCertificateModal && selectedDonation && (
-        <DonationCertificate
-          donation={selectedDonation}
-          user={user}
-          onClose={() => {
-            setShowCertificateModal(false);
-            setSelectedDonation(null);
-          }}
-        />
+        loadingCertificate ? (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 text-center">
+              <Loader size="large" />
+              <p className="mt-4 text-gray-600">Loading certificate...</p>
+            </div>
+          </div>
+        ) : selectedCertificate ? (
+          <DonationCertificate
+            donation={selectedDonation}
+            user={user}
+            certificate={selectedCertificate}
+            onClose={() => {
+              setShowCertificateModal(false);
+              setSelectedDonation(null);
+              setSelectedCertificate(null);
+            }}
+          />
+        ) : (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 text-center max-w-md">
+              <FiAward className="mx-auto text-5xl text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Certificate Not Found</h3>
+              <p className="text-gray-600 mb-4">The certificate for this donation could not be found.</p>
+              <button
+                onClick={() => {
+                  setShowCertificateModal(false);
+                  setSelectedDonation(null);
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )
       )}
       
       {/* Rating Modal */}

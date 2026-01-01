@@ -32,6 +32,7 @@ import EditDonationPage from './pages/EditDonationPage';
 
 // Receiver Pages
 import MyRequestsPage from './pages/MyRequestsPage';
+import ConfirmPickupPage from './pages/ConfirmPickupPage';
 
 // User Pages
 import ProfilePage from './pages/ProfilePage';
@@ -104,6 +105,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['receiver']}>
                       <MyRequestsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/confirm-pickup"
+                  element={
+                    <ProtectedRoute allowedRoles={['receiver']}>
+                      <ConfirmPickupPage />
                     </ProtectedRoute>
                   }
                 />
