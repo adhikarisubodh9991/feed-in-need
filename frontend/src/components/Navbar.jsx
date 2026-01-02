@@ -54,9 +54,9 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-3">
-              <img src="/logo.png" alt="Feed In Need" className="w-10 h-10 object-contain" />
+              <img src="/logo.png" alt="Starvation to Salvation" className="w-10 h-10 object-contain" />
               <span className="text-xl font-bold text-gray-800">
-                Feed In Need
+                Starvation to Salvation
               </span>
             </Link>
           </div>

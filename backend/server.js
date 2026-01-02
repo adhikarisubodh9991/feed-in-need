@@ -11,7 +11,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
-import { notFound, errorHandler } from './middleware/errorHandler.js';
+import { notFound, errorHandler } from './middleware/errorHandler.js'; 
 import { generalRateLimit } from './middleware/rateLimiter.js';
 
 // Route imports
