@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: feed-in-need
+    name: starvation-to-salvation
     env: node
     buildCommand: npm install && npm run build
     startCommand: npm start

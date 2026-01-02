@@ -4,7 +4,7 @@
   "description": "A full-stack web application for food donation management that connects food donors with receivers in need. Built with React, Node.js, Express, and MongoDB.",
   "main": "index.js",
   "scripts": {
-    "start": "cd frontend && npm run build && cd ../backend && cross-env NODE_ENV=production node server.js",
+    "start": "cd backend && cross-env NODE_ENV=production node server.js",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
